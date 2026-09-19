@@ -1,20 +1,119 @@
 # Librerias
 import customtkinter as ctk
 
-from calculadorabasica import calcular
+# Importar Modulos
+from modulo_resource_path import resource_path
+from calculadorabasica import calcular, clear
 
 # ==================== BLOQUE BACKEND =====================
 
+numero_anterior = None
+operacion_pendiente = None
+esperando_numero= True
 
+# Funciones de operaciones basicas
+def actualizar_pantalla(texto):
+    label_resultado.configure(text=texto)
+    
+# Funcion para insertar numeros en la pantalla
+def insertar_numero(numero):
+    global esperando_numero
+    
+    pantalla = label_resultado.cget("text")
+    if esperando_numero or pantalla.startswith("Error"):
+        pantalla = ""
+        esperando_numero = False
+    actualizar_pantalla(pantalla + str(numero))
+    
+# Funcion para realizar operaciones matemáticas 
+def realizar_operacion(numero1, numero2, operacion):
+    if operacion == "+":
+        return numero1 + numero2
+    if operacion == "-":
+        return numero1 - numero2
+    if operacion == "x":
+        return numero1 * numero2
+    if operacion == "÷":
+        if numero2 != 0:
+            raise ZeroDivisionError
+        return numero1 / numero2
+    if operacion == "%":
+        return numero1 * numero2 / 100
+    raise ValueError
 
+# Funcion para seleccionar la operacion y manejar el flujo de calculo
+def seleccionar_operacion(operacion):
+    global numero_anterior, operacion_pendiente, esperando_numero
+    
+    try:
+        numero_actual = float(label_resultado.cget("text"))
+    
+        if numero_anterior is not None and operacion_pendiente is not None:
+            if not esperando_numero:
+                numero_anterior = realizar_operacion(
+                    numero_anterior,
+                    numero_actual,
+                    operacion_pendiente
+                )
+        else: 
+            numero_anterior = numero_actual
+            
+        operacion_pendiente = operacion
+        esperando_numero = True
+        actualizar_pantalla(f"{numero_anterior:g} {operacion}")
+    except ZeroDivisionError:
+        actualizar_pantalla("Error")
+        clear()
+    except ValueError:
+        actualizar_pantalla("Error")
+        
+    # Funcion para calcular el resultado de la operacion pendiente
+    def calcular():
+        global numero_anterior, operacion_pendiente, esperando_numero
+        
+        if numero_anterior is None or operacion_pendiente is None or esperando_numero:
+            actualizar_pantalla("Error")
+            return
+        
+        texto_actual = label_resultado.cget("text")
+        try:
+            numero_actual = float(texto_actual)
+            resultado = realizar_operacion(
+                numero_anterior, 
+                numero_actual, 
+                operacion_pendiente
+            )
+            
+            numero_anterior = resultado
+            operacion_pendiente = None
+            esperando_numero = True
+            actualizar_pantalla(f"{resultado:g}")
+        except ZeroDivisionError:
+            actualizar_pantalla("Error")
+        except ValueError:
+            actualizar_pantalla("Error")
+            
+# Funcion para limpiar la pantalla y reiniciar el estado de la calculadora
+def clear():
+    global numero_anterior, operacion_pendiente, esperando_numero
+    numero_anterior = None
+    operacion_pendiente = None
+    esperando_numero = True
+    actualizar_pantalla("")
+            
+            
 # ==================== BLOQUE FRONTEND ====================
 
 # temas y apariencia 
 ctk.set_appearance_mode("Dark")
 
+# Icono de la aplicacion 
+icon = resource_path("Static\\Images\\Logo arkan.ico")
+
 # Configuracion de la ventana
 app = ctk.CTk()
 app.title("Calculadora Alfanumerica")
+app.iconbitmap(icon)
 app.resizable(False, False)
 app.geometry("300x360")
 app.columnconfigure((0,1,2,3), weight=1)
